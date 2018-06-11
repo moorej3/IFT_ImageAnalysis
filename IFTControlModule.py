@@ -12,8 +12,9 @@ def listfiles(directory, extension):
 
 a = listfiles("./", "filtered_forward.tif")
 
-print(a)
+#print(a)
 
 for file in a:
+    print("\n \n Analyzing " + file + "\n")
     filename = file.split("./")[1].split("/")[0]
     IftAnalysis.IFTTraj(file, filename)

@@ -276,14 +276,21 @@ def IFTTraj(loc, name):
     #Using image_kmA1
     #Sum all points in the image and divide by time to find avg intensity
     #at any given time point
-    tintensity = 0 #To hold total intensity
-    for i in range(0, image_kmA1.shape[0]): #Where shape is (time, pos)
-        for j in range(0, image_kmA1.shape[1]):
-            tintensity = tintensity + image_kmA1[i][j]
 
+    #Using the isolated trajectories only
+    # tintensity = 0 #To hold total intensity
+    # for i in range(0, image_kmA1.shape[0]): #Where shape is (time, pos)
+    #     for j in range(0, image_kmA1.shape[1]):
+    #         tintensity = tintensity + image_kmA1[i][j]
+
+    #Using the original image under gaussian filter
+    tintensity = 0
+    for i in range(0, im_fw02.shape[0]): #Where shape is (time, pos)
+        for j in range(0, im_fw02.shape[1]):
+            tintensity = tintensity + im_fw02[i][j]
 
     #Define avgintensity = totalintensity/number of sampled timepoints
-    avgintensity = tintensity/(image_kmA1.shape[0])
+    avgintensity = tintensity/(image_kmA1.shape[0]*flalength)
 
     #Calculate avg intensity for each trajectory.
     trajintensity = []

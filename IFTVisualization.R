@@ -12,6 +12,10 @@ ggplot(Data, aes(x = Strain, y = avgSlope)) +
   theme_pubr()+
   ylab("Average Velocity (um/s)")
 
+ggplot(Data, aes(x = flalength, y = avgSlope, color = Strain)) +
+  geom_point()+
+  geom_smooth(method = "lm", se = F)
+
 #Boxplot of intensity vs strain
 ggplot(Data, aes(x = Strain, y = avgInt)) + 
   geom_boxplot() + 
@@ -19,6 +23,9 @@ ggplot(Data, aes(x = Strain, y = avgInt)) +
   theme_pubr()+
   ylab("Average Intensity (A.U.)")
 
+ggplot(Data, aes(x = flalength, y = avgInt, color = Strain)) +
+  geom_point()+
+  geom_smooth(method = "lm", se = F)
 
 #Statistics
 Slope.lm <- lm(avgSlope~Strain, data = Data)
@@ -30,3 +37,4 @@ TukeyHSD(Int.lm)
 anova(Int.lm)
 
 favstats(avgInt~Strain, data = Data)
+
