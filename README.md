@@ -19,6 +19,8 @@ Program Details:
 
   Dependencies: Designed for python version 3.6.1. Uses the packages: csv, os, matplotlib, numpy, scipy
   -For converting from pixel-based coordinates to true distance and time coordinates, you must edit the px_size and fps parameters.
+  
   -The program first determines the length of the flagella. It assumes that the kymograph was generated with the base of the flagellum at the left, and that it extends past the flagellum at the right. A threshold for the start and end of the fluorescent region is determined as 2/3 the average intensity of the image. 
+  
   -Next, trajectories are determined from the image. Peak detection locates the position of particles, then a greedy algorithm links points to each other on the assumption that the particles are moving forward in time and space. 
   
