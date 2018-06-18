@@ -1,6 +1,7 @@
 from os import walk
 import IftAnalysis
 
+
 def listfiles(directory, extension):
     filelist = []
     for(dirpath, dirnames, filenames) in walk(directory):
