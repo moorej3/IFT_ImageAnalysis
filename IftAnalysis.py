@@ -68,7 +68,8 @@ def IFTTraj(loc, name):
     #==========================================
     #Determine Flagellar Length and Start point
     #==========================================
-    minvalue = 12
+    #This version starts te path finding where the average brightness per position
+    #goes above 2/3 the average brightness of the image.
 
     #Flalength
     colsums =[]
@@ -78,10 +79,11 @@ def IFTTraj(loc, name):
             total = total + image_fw01[row][col]
         colsums.append(total/image_fw01.shape[0])
 
+    #Calculate average brightness as 2/3 the average value
+    minvalue = sum(colsums)/len(colsums) * 2/3
+
     #Find point from the end where value exceeds threshold
     flapx = int(len(colsums))-1
-
-    # print("Colsums: ", colsums, "\n")
     while(colsums[flapx] < minvalue and flapx > 0):
         flapx = flapx - 1
     if(flapx == 0):
@@ -90,11 +92,13 @@ def IFTTraj(loc, name):
     #i is now the nth pixel where brightness drops off (where the flagella ends)
     flalength = flapx * px_size
 
-    #Start point
+    #Identify where the trajectories begin.
     flastart = 0
     while(colsums[flastart] < minvalue and flastart < int(len(colsums))-1):
         flastart = flastart + 1
 
+    #Total amount of the flagella measured, for more accurate estimation of average intensity
+    amtmeasured = flalength - flastart*px_size
 
     #==========================================
     #Detect IFT trajectory using peak detection
@@ -133,8 +137,9 @@ def IFTTraj(loc, name):
     #
     # #Display image of peaks
     fig = plt.figure()
-    plt.subplot(121), plt.imshow(image_bwfw01)
-    plt.subplot(122), plt.imshow(image_kmA1)
+    plt.subplot(131), plt.imshow(image_bwfw01)
+    plt.subplot(132), plt.imshow(image_kmA1)
+    plt.subplot(133), plt.imshow(image_fw01)
     #plt.show()
     fig.savefig(filepath + "/peaks.png")
 
@@ -171,7 +176,7 @@ def IFTTraj(loc, name):
             Traj = [point] #List to store single trajectory in
             AP = AllPeaks
 
-            while(len(AP) > 0 and point[0] < siz_imfw02[1]):
+            while(len(AP) > 0 and point[0] < flapx):
                 #Subset AllPeaks to a 20 x 10 box around the current point
                 AP = AllPeaks[(AllPeaks['t'] > point[1] - 10) & (AllPeaks['t'] < point[1]+10) & (AllPeaks['x'] > point[0]) & (AllPeaks['x'] < point[0] + 10)]
 
@@ -283,14 +288,28 @@ def IFTTraj(loc, name):
     #     for j in range(0, image_kmA1.shape[1]):
     #         tintensity = tintensity + image_kmA1[i][j]
 
+    # #Using the original image under gaussian filter
+    # tintensity = 0
+    # for i in range(0, im_fw02.shape[0]): #Where shape is (time, pos)
+    #     for j in range(0, im_fw02.shape[1]):
+    #         tintensity = tintensity + im_fw02[i][j]
+    #
+    # #Define avgintensity = totalintensity/number of sampled timepoints
+    # avgintensity = tintensity/(image_kmA1.shape[0]/fps*amtmeasured)
+    #
+    # #Calculate avg intensity for each trajectory.
+    # trajintensity = []
+    # for i in range(0, len(FilterTraj1)):
+    #     trajintensity.append(sum(FilterTraj1[i][2])/len(FilterTraj1[i][2]))
+
     #Using the original image under gaussian filter
     tintensity = 0
-    for i in range(0, im_fw02.shape[0]): #Where shape is (time, pos)
-        for j in range(0, im_fw02.shape[1]):
-            tintensity = tintensity + im_fw02[i][j]
+    for i in range(0, image_kmA1.shape[0]): #Where shape is (time, pos)
+        for j in range(0, image_kmA1.shape[1]):
+            tintensity = tintensity + image_kmA1[i][j]
 
     #Define avgintensity = totalintensity/number of sampled timepoints
-    avgintensity = tintensity/(image_kmA1.shape[0]*flalength)
+    avgintensity = tintensity/(image_kmA1.shape[0]/fps*amtmeasured)
 
     #Calculate avg intensity for each trajectory.
     trajintensity = []
@@ -309,16 +328,17 @@ def IFTTraj(loc, name):
     Results1.to_csv(filepath + "/Results1.csv")
 
     #Export number of analyzed trajectories, average speed, average intensity
-    Summary1 = pd.DataFrame([len(FilterTraj1), averageslope, avgintensity]).transpose()
-    Summary1.columns = ['n', 'avgSpeed','avgIntensity']
+    Summary1 = pd.DataFrame([len(FilterTraj1), averageslope, avgintensity, flalength]).transpose()
+    Summary1.columns = ['n', 'avgSpeed','avgIntensity', 'FlagellaLength']
     Summary1.to_csv(filepath + "/Summary1.csv")
 
-    Data = [name, len(FilterTraj1), averageslope, avgintensity, flalength]
+    #Recall that amtmeasured is the length of flagella that actually fluoresced.
+    Data = [name, len(FilterTraj1), averageslope, avgintensity, tintensity, flalength, im_fw02.shape[0]/fps, amtmeasured]
     #Export data to shared document
     if(not os.path.isfile("Data.csv")):
         with open(r"Data.csv",'a') as f:
             writer = csv.writer(f)
-            writer.writerow(['Sample','numTraj','avgSlope','avgInt', 'flalength'])
+            writer.writerow(['Sample', 'numTraj','avgSlope','avgInt', 'totalInt', 'flalength', 'ImgTime', 'TrueLength'])
 
     with open(r"Data.csv", 'a') as f:
         writer = csv.writer(f)
