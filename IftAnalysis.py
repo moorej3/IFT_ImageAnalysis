@@ -18,9 +18,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage, signal
 from scipy.stats import linregress, norm
+import PhotoBleachCorrect as PB
 
 
-def IFTTraj(loc, name):
+def IFTTraj(loc, loc2, name):
     #==============
     #File locations
     #==============
@@ -50,6 +51,9 @@ def IFTTraj(loc, name):
     #Read in kymographs
     #==================
     image_fw01 = ndimage.imread(loc, flatten=True)
+    image_km01 = ndimage.imread(loc2, flatten=True)
+    image_km02 = ndimage.gaussian_filter(image_km01, sigma = (3,1), order = 0)
+    image_km02 = PB.PBCorrect(image_km02)
 
     cropend = int(0.9 * len(image_fw01))
 
@@ -278,38 +282,40 @@ def IFTTraj(loc, name):
     #=======================
     #Calculate IFT Intensity
     #=======================
-    #Using image_kmA1
+
+    #Remove background
+    minbright = 999999
+    for i in range(0, image_km02.shape[0]):
+        for j in range(0, image_km02.shape[1]):
+            if(image_km02[i][j] < minbright):
+                minbright = image_km02[i][j]
+
+    for i in range(0, image_km02.shape[0]):
+        for j in range(0, image_km02.shape[1]):
+            image_km02[i][j] = image_km02[i][j] - minbright
+
+
+    #Correct for photobleaching by dividing each time-point by its local minima on a 1.5 second window
+    # rowsums = np.amin(image_km02, 1)
+    # frame = 15
+    # while(frame < image_km02.shape[0]-15):
+    #     image_km02[frame-15:frame+15][:] = image_km02[frame-15:frame+15][:]/min(rowsums[frame-15:frame+15])
+    #     frame = frame + 30
+
+    plt.figure("Background Corrected")
+    plt.imshow(image_km02)
+    plt.savefig(filepath + "/photocorrected.png")
+
     #Sum all points in the image and divide by time to find avg intensity
     #at any given time point
-
-    #Using the isolated trajectories only
-    # tintensity = 0 #To hold total intensity
-    # for i in range(0, image_kmA1.shape[0]): #Where shape is (time, pos)
-    #     for j in range(0, image_kmA1.shape[1]):
-    #         tintensity = tintensity + image_kmA1[i][j]
-
-    # #Using the original image under gaussian filter
-    # tintensity = 0
-    # for i in range(0, im_fw02.shape[0]): #Where shape is (time, pos)
-    #     for j in range(0, im_fw02.shape[1]):
-    #         tintensity = tintensity + im_fw02[i][j]
-    #
-    # #Define avgintensity = totalintensity/number of sampled timepoints
-    # avgintensity = tintensity/(image_kmA1.shape[0]/fps*amtmeasured)
-    #
-    # #Calculate avg intensity for each trajectory.
-    # trajintensity = []
-    # for i in range(0, len(FilterTraj1)):
-    #     trajintensity.append(sum(FilterTraj1[i][2])/len(FilterTraj1[i][2]))
-
     #Using the original image under gaussian filter
     tintensity = 0
-    for i in range(0, image_kmA1.shape[0]): #Where shape is (time, pos)
-        for j in range(0, image_kmA1.shape[1]):
-            tintensity = tintensity + image_kmA1[i][j]
+    for i in range(0, image_km01.shape[0]//2): #Where shape is (time, pos) #No Using all the time? Not sure what works better.
+        for j in range(0, image_km01.shape[1]):
+            tintensity = tintensity + image_km01[i][j]
 
     #Define avgintensity = totalintensity/number of sampled timepoints
-    avgintensity = tintensity/(image_kmA1.shape[0]/fps*amtmeasured)
+    avgintensity = tintensity/(image_km01.shape[0]/fps*amtmeasured)
 
     #Calculate avg intensity for each trajectory.
     trajintensity = []
@@ -348,3 +354,6 @@ def IFTTraj(loc, name):
     plt.close("all")
 
     print("Data exported 0 \n")
+
+#Test Case
+#IFTTraj('kymograph_35 filtered_forward.tif', 'kymograph35.tif', 'test')
